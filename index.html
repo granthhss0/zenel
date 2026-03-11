@@ -4,195 +4,606 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Zenel</title>
-  <link rel="stylesheet" href="css/style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0e0e;
+      --text: #f5f5f0;
+      --muted: rgba(245,245,240,0.45);
+      --btn-bg: rgba(255,255,255,0.1);
+      --btn-hover: rgba(255,255,255,0.18);
+      --radius: 14px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Instrument Sans', sans-serif;
+      overflow: hidden;
+    }
+
+    #bg-art {
+      position: fixed;
+      inset: -40px;
+      background-size: cover;
+      background-position: center;
+      filter: blur(80px) saturate(1.4) brightness(0.35);
+      transition: background-image 0.8s ease;
+      z-index: 0;
+    }
+
+    #app {
+      position: relative;
+      z-index: 1;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 20px 36px;
+    }
+
+    /* Search */
+    #search-wrap {
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    #search-wrap > svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 15px; height: 15px;
+      stroke: var(--muted); fill: none;
+      stroke-width: 2; stroke-linecap: round;
+      pointer-events: none;
+    }
+
+    #search-input {
+      width: 100%;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      color: var(--text);
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 0.88rem;
+      padding: 11px 14px 11px 40px;
+      border-radius: 30px;
+      outline: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    #search-input:focus {
+      background: rgba(255,255,255,0.13);
+      border-color: rgba(255,255,255,0.22);
+    }
+    #search-input::placeholder { color: var(--muted); }
+
+    #search-results {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0; right: 0;
+      background: rgba(16,16,16,0.94);
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: var(--radius);
+      overflow: hidden;
+      max-height: 360px;
+      overflow-y: auto;
+      display: none;
+      z-index: 100;
+    }
+    #search-results.open { display: block; }
+
+    .result-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .result-item:hover { background: rgba(255,255,255,0.07); }
+
+    .result-cover {
+      width: 40px; height: 40px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: #222;
+      flex-shrink: 0;
+    }
+
+    .result-info { min-width: 0; }
+    .result-title {
+      font-size: 0.84rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .result-artist {
+      font-size: 0.74rem; color: var(--muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .result-duration {
+      font-size: 0.72rem; color: var(--muted);
+      margin-left: auto; flex-shrink: 0;
+    }
+
+    /* Cover */
+    #cover-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 24px 0 16px;
+    }
+
+    #cover {
+      width: min(340px, 70vw, 60vh);
+      height: min(340px, 70vw, 60vh);
+      border-radius: 20px;
+      object-fit: cover;
+      background: #1a1a1a;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
+      transition: opacity 0.4s, transform 0.4s;
+      display: block;
+    }
+    #cover.loading { opacity: 0.4; transform: scale(0.97); }
+
+    /* Track info */
+    #track-info {
+      text-align: center;
+      width: 100%;
+      max-width: 380px;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+
+    #track-title {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 400;
+      line-height: 1.15;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 6px;
+    }
+
+    #track-artist {
+      font-size: 0.85rem;
+      color: var(--muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* Progress */
+    #progress-wrap {
+      width: 100%;
+      max-width: 380px;
+      margin-top: 20px;
+      flex-shrink: 0;
+    }
+
+    #progress-bar {
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: height 0.15s;
+    }
+    #progress-bar:hover { height: 5px; }
+
+    #progress-fill {
+      height: 100%;
+      background: var(--text);
+      border-radius: 3px;
+      width: 0%;
+      pointer-events: none;
+    }
+
+    #time-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Controls */
+    #controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 22px;
+      flex-shrink: 0;
+    }
+
+    .ctrl-btn {
+      background: var(--btn-bg);
+      border: none;
+      color: var(--text);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+      flex-shrink: 0;
+    }
+    .ctrl-btn:hover { background: var(--btn-hover); }
+    .ctrl-btn:active { transform: scale(0.92); }
+
+    .ctrl-btn.sm { width: 44px; height: 44px; }
+    .ctrl-btn.sm svg {
+      width: 18px; height: 18px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .ctrl-btn.lg {
+      width: 62px; height: 62px;
+      background: var(--text);
+      color: #0e0e0e;
+    }
+    .ctrl-btn.lg:hover { background: rgba(245,245,240,0.88); }
+    .ctrl-btn.lg svg { width: 22px; height: 22px; fill: currentColor; stroke: none; }
+
+    /* Volume */
+    #volume-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 18px;
+      flex-shrink: 0;
+    }
+    #volume-wrap svg {
+      width: 14px; height: 14px;
+      stroke: var(--muted); fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    #volume-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100px; height: 3px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.15);
+      outline: none; cursor: pointer;
+    }
+    #volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--text);
+    }
+
+    /* API pill */
+    #api-pill {
+      position: fixed;
+      top: 18px; right: 18px;
+      z-index: 50;
+    }
+    #api-select {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(16px);
+      color: var(--muted);
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 0.7rem;
+      padding: 5px 10px;
+      border-radius: 20px;
+      outline: none; cursor: pointer;
+      appearance: none; -webkit-appearance: none;
+      max-width: 160px;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26,26,26,0.95);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text);
+      font-size: 0.78rem;
+      padding: 8px 18px;
+      border-radius: 30px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+  </style>
 </head>
 <body>
-  <div id="app">
 
-    <!-- Sidebar -->
-    <aside id="sidebar">
-      <div class="logo">
-        <span class="logo-mark">Z</span>
-        <span class="logo-text">zenel</span>
-      </div>
+<div id="bg-art"></div>
 
-      <nav class="nav-links">
-        <a href="#" class="nav-item active" data-view="home">
-          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          Home
-        </a>
-        <a href="#" class="nav-item" data-view="search">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Search
-        </a>
-        <a href="#" class="nav-item" data-view="library">
-          <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          Library
-        </a>
-      </nav>
+<div id="api-pill">
+  <select id="api-select">
+    <option value="https://ohio.monochrome.tf">ohio · monochrome</option>
+    <option value="https://virginia.monochrome.tf">virginia · monochrome</option>
+    <option value="https://oregon.monochrome.tf">oregon · monochrome</option>
+    <option value="https://frankfurt.monochrome.tf">frankfurt · monochrome</option>
+    <option value="https://singapore.monochrome.tf">singapore · monochrome</option>
+    <option value="https://triton.squid.wtf">triton · squid</option>
+    <option value="https://aether.squid.wtf">aether · squid</option>
+    <option value="https://zeus.squid.wtf">zeus · squid</option>
+    <option value="https://kraken.squid.wtf">kraken · squid</option>
+    <option value="https://phoenix.squid.wtf">phoenix · squid</option>
+    <option value="https://shiva.squid.wtf">shiva · squid</option>
+    <option value="https://chaos.squid.wtf">chaos · squid</option>
+    <option value="https://wolf.qqdl.site">wolf · qqdl</option>
+    <option value="https://maus.qqdl.site">maus · qqdl</option>
+    <option value="https://vogel.qqdl.site">vogel · qqdl</option>
+    <option value="https://katze.qqdl.site">katze · qqdl</option>
+    <option value="https://hund.qqdl.site">hund · qqdl</option>
+    <option value="https://tidal.401658.xyz">tidal · 401658</option>
+  </select>
+</div>
 
-      <div class="sidebar-section">
-        <p class="sidebar-label">API Instance</p>
-        <div class="api-selector">
-          <select id="api-instance">
-            <!-- Monochrome -->
-            <option value="https://ohio.monochrome.tf">ohio · monochrome</option>
-            <option value="https://virginia.monochrome.tf">virginia · monochrome</option>
-            <option value="https://oregon.monochrome.tf">oregon · monochrome</option>
-            <option value="https://frankfurt.monochrome.tf">frankfurt · monochrome</option>
-            <option value="https://singapore.monochrome.tf">singapore · monochrome</option>
-            <!-- squid.wtf -->
-            <option value="https://triton.squid.wtf">triton · squid</option>
-            <option value="https://aether.squid.wtf">aether · squid</option>
-            <option value="https://zeus.squid.wtf">zeus · squid</option>
-            <option value="https://kraken.squid.wtf">kraken · squid</option>
-            <option value="https://phoenix.squid.wtf">phoenix · squid</option>
-            <option value="https://shiva.squid.wtf">shiva · squid</option>
-            <option value="https://chaos.squid.wtf">chaos · squid</option>
-            <!-- lucida / qqdl -->
-            <option value="https://wolf.qqdl.site">wolf · qqdl</option>
-            <option value="https://maus.qqdl.site">maus · qqdl</option>
-            <option value="https://vogel.qqdl.site">vogel · qqdl</option>
-            <option value="https://katze.qqdl.site">katze · qqdl</option>
-            <option value="https://hund.qqdl.site">hund · qqdl</option>
-            <!-- 401658 -->
-            <option value="https://tidal.401658.xyz">tidal · 401658</option>
-            <option value="custom">Custom instance…</option>
-          </select>
-          <input id="custom-api" type="text" placeholder="https://your-instance.com" style="display:none" />
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <p class="sidebar-label">Queue</p>
-        <div id="queue-list"></div>
-      </div>
-    </aside>
-
-    <!-- Main content -->
-    <main id="content">
-
-      <!-- Home View -->
-      <section id="view-home" class="view active">
-        <div class="view-header">
-          <h1>Good <span id="greeting-time">evening</span></h1>
-          <p class="subtitle">Stream hi-fi music via the TIDAL hifi API</p>
-        </div>
-        <div class="featured-search">
-          <div class="big-search-wrap">
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input id="home-search" type="text" placeholder="Search for a song, album, or artist…" />
-          </div>
-        </div>
-        <div id="home-results" class="results-grid hidden"></div>
-      </section>
-
-      <!-- Search View -->
-      <section id="view-search" class="view">
-        <div class="view-header">
-          <h1>Search</h1>
-        </div>
-        <div class="search-bar-wrap">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="search-input" type="text" placeholder="Tracks, albums, artists…" />
-          <div class="search-type-tabs">
-            <button class="tab active" data-type="tracks">Tracks</button>
-            <button class="tab" data-type="albums">Albums</button>
-            <button class="tab" data-type="artists">Artists</button>
-          </div>
-        </div>
-        <div id="search-results" class="results-list"></div>
-      </section>
-
-      <!-- Library View -->
-      <section id="view-library" class="view">
-        <div class="view-header">
-          <h1>Library</h1>
-        </div>
-        <div id="library-content">
-          <div class="empty-state">
-            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <p>Your liked tracks will appear here.</p>
-            <p class="small">Like a song by pressing the ♥ button.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Album View -->
-      <section id="view-album" class="view">
-        <div id="album-detail"></div>
-      </section>
-
-      <!-- Artist View -->
-      <section id="view-artist" class="view">
-        <div id="artist-detail"></div>
-      </section>
-
-    </main>
+<div id="app">
+  <div id="search-wrap">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="search-input" type="text" placeholder="Search for a song…" autocomplete="off" />
+    <div id="search-results"></div>
   </div>
 
-  <!-- Now Playing Bar -->
-  <footer id="player">
-    <div class="player-left">
-      <img id="player-cover" src="" alt="" />
-      <div class="player-meta">
-        <span id="player-title">—</span>
-        <span id="player-artist">No track playing</span>
-      </div>
-      <button id="like-btn" class="icon-btn" title="Like">
-        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-      </button>
-    </div>
-    <div class="player-center">
-      <div class="player-controls">
-        <button id="shuffle-btn" class="icon-btn small" title="Shuffle">
-          <svg viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
-        </button>
-        <button id="prev-btn" class="icon-btn" title="Previous">
-          <svg viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
-        </button>
-        <button id="play-btn" class="play-btn" title="Play/Pause">
-          <svg id="play-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          <svg id="pause-icon" viewBox="0 0 24 24" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-        </button>
-        <button id="next-btn" class="icon-btn" title="Next">
-          <svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
-        </button>
-        <button id="repeat-btn" class="icon-btn small" title="Repeat">
-          <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-        </button>
-      </div>
-      <div class="progress-row">
-        <span id="time-current">0:00</span>
-        <div id="progress-bar" class="progress-bar">
-          <div id="progress-fill" class="progress-fill"></div>
-          <div id="progress-thumb" class="progress-thumb"></div>
-        </div>
-        <span id="time-total">0:00</span>
-      </div>
-    </div>
-    <div class="player-right">
-      <span id="quality-badge" class="quality-badge hidden"></span>
-      <svg class="volume-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-      <input id="volume-slider" type="range" min="0" max="1" step="0.01" value="1" />
-    </div>
-  </footer>
-
-  <!-- Loading overlay -->
-  <div id="loading-overlay" class="hidden">
-    <div class="spinner"></div>
+  <div id="cover-wrap">
+    <img id="cover" src="" alt="" />
   </div>
 
-  <!-- Notification toast -->
-  <div id="toast" class="hidden"></div>
+  <div id="track-info">
+    <div id="track-title">Zenel</div>
+    <div id="track-artist">Search for a song to begin</div>
+  </div>
 
-  <audio id="audio-element"></audio>
+  <div id="progress-wrap">
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+    <div id="time-row">
+      <span id="time-cur">0:00</span>
+      <span id="time-tot">0:00</span>
+    </div>
+  </div>
 
-  <script src="js/api.js"></script>
-  <script src="js/player.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/app.js"></script>
+  <div id="controls">
+    <button class="ctrl-btn sm" id="btn-prev">
+      <svg viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+    </button>
+    <button class="ctrl-btn lg" id="btn-play">
+      <svg id="icon-play"  viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      <svg id="icon-pause" viewBox="0 0 24 24" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    </button>
+    <button class="ctrl-btn sm" id="btn-next">
+      <svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+    </button>
+  </div>
+
+  <div id="volume-wrap">
+    <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+    <input id="volume-slider" type="range" min="0" max="1" step="0.01" value="1" />
+  </div>
+</div>
+
+<div id="toast"></div>
+<audio id="audio"></audio>
+
+<script>
+let BASE = localStorage.getItem('zenel_api') || '';
+
+const INSTANCES = [
+  'https://ohio.monochrome.tf','https://virginia.monochrome.tf',
+  'https://oregon.monochrome.tf','https://frankfurt.monochrome.tf',
+  'https://singapore.monochrome.tf','https://triton.squid.wtf',
+  'https://aether.squid.wtf','https://zeus.squid.wtf',
+  'https://kraken.squid.wtf','https://phoenix.squid.wtf',
+  'https://shiva.squid.wtf','https://chaos.squid.wtf',
+  'https://wolf.qqdl.site','https://maus.qqdl.site',
+  'https://vogel.qqdl.site','https://katze.qqdl.site',
+  'https://hund.qqdl.site','https://tidal.401658.xyz',
+];
+
+async function ping(url) {
+  try {
+    const ac = new AbortController();
+    setTimeout(() => ac.abort(), 3500);
+    const r = await fetch(`${url}/search/?s=test&limit=1`, { signal: ac.signal });
+    return r.ok;
+  } catch { return false; }
+}
+
+async function autoConnect() {
+  toast('Finding a live instance…');
+  for (const url of INSTANCES) {
+    if (await ping(url)) {
+      BASE = url;
+      localStorage.setItem('zenel_api', url);
+      const opt = [...document.getElementById('api-select').options].find(o => o.value === url);
+      if (opt) document.getElementById('api-select').value = url;
+      toast('Connected: ' + url.replace('https://', ''));
+      return;
+    }
+  }
+  toast('No live instance found — pick one from the menu.');
+}
+
+async function apiFetch(path) {
+  const r = await fetch(BASE + path);
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+function coverUrl(uuid, size) {
+  if (!uuid) return '';
+  return `https://resources.tidal.com/images/${uuid.replace(/-/g,'/')}/${size}x${size}.jpg`;
+}
+
+function fmt(s) {
+  if (!s || isNaN(s)) return '0:00';
+  return Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── State ──
+let queue = [], qIdx = -1, currentTrack = null;
+const audio = document.getElementById('audio');
+
+// ── Play ──
+async function playTrack(track) {
+  currentTrack = track;
+  const cover = document.getElementById('cover');
+  cover.classList.add('loading');
+
+  const artists = (track.artists || [track.artist]).map(a => a?.name).filter(Boolean).join(', ');
+  const src = coverUrl(track.album?.cover, 640);
+
+  document.getElementById('track-title').textContent = track.title || '—';
+  document.getElementById('track-artist').textContent = artists;
+  document.getElementById('bg-art').style.backgroundImage = src ? `url(${src})` : '';
+  cover.src = src;
+  cover.onload = () => cover.classList.remove('loading');
+
+  try {
+    const data = await apiFetch(`/track/?id=${track.id}&quality=LOSSLESS`);
+    const stream = data?.data;
+    if (!stream?.manifest) throw new Error('No manifest');
+    const raw = atob(stream.manifest);
+    if ((stream.manifestMimeType||'').includes('tidal.bts')) {
+      audio.src = JSON.parse(raw).urls?.[0];
+    } else {
+      audio.src = URL.createObjectURL(new Blob([raw], {type:'application/dash+xml'}));
+    }
+    audio.load();
+    await audio.play();
+  } catch(e) {
+    toast('Playback error: ' + e.message);
+    cover.classList.remove('loading');
+  }
+}
+
+function setPlayIcon(playing) {
+  document.getElementById('icon-play').style.display = playing ? 'none' : '';
+  document.getElementById('icon-pause').style.display = playing ? '' : 'none';
+}
+
+audio.addEventListener('timeupdate', () => {
+  const f = audio.duration ? audio.currentTime / audio.duration : 0;
+  document.getElementById('progress-fill').style.width = (f*100) + '%';
+  document.getElementById('time-cur').textContent = fmt(audio.currentTime);
+  document.getElementById('time-tot').textContent = fmt(audio.duration);
+});
+audio.addEventListener('ended', () => { if (qIdx+1 < queue.length) playTrack(queue[++qIdx]); else setPlayIcon(false); });
+audio.addEventListener('play',  () => setPlayIcon(true));
+audio.addEventListener('pause', () => setPlayIcon(false));
+
+// ── Controls ──
+document.getElementById('btn-play').onclick = () => { if (currentTrack) audio.paused ? audio.play() : audio.pause(); };
+document.getElementById('btn-next').onclick = () => { if (qIdx+1 < queue.length) playTrack(queue[++qIdx]); };
+document.getElementById('btn-prev').onclick = () => {
+  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  if (qIdx > 0) playTrack(queue[--qIdx]);
+};
+document.getElementById('volume-slider').oninput = e => { audio.volume = +e.target.value; };
+
+const pb = document.getElementById('progress-bar');
+let scrubbing = false;
+pb.addEventListener('mousedown', e => { scrubbing = true; doScrub(e); });
+document.addEventListener('mousemove', e => { if (scrubbing) doScrub(e); });
+document.addEventListener('mouseup', () => { scrubbing = false; });
+function doScrub(e) {
+  const r = pb.getBoundingClientRect();
+  if (audio.duration) audio.currentTime = Math.max(0, Math.min(1, (e.clientX-r.left)/r.width)) * audio.duration;
+}
+
+document.addEventListener('keydown', e => {
+  if (document.activeElement.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); document.getElementById('btn-play').click(); }
+  if (e.code === 'ArrowRight') document.getElementById('btn-next').click();
+  if (e.code === 'ArrowLeft') document.getElementById('btn-prev').click();
+});
+
+// ── Search ──
+const si = document.getElementById('search-input');
+const sr = document.getElementById('search-results');
+let dbt = null;
+
+si.addEventListener('input', () => {
+  clearTimeout(dbt);
+  if (!si.value.trim()) { sr.classList.remove('open'); return; }
+  dbt = setTimeout(() => runSearch(si.value.trim()), 380);
+});
+si.addEventListener('keydown', e => { if (e.key === 'Escape') { sr.classList.remove('open'); si.blur(); } });
+document.addEventListener('click', e => { if (!document.getElementById('search-wrap').contains(e.target)) sr.classList.remove('open'); });
+
+async function runSearch(q) {
+  sr.innerHTML = '<div style="padding:14px;text-align:center;color:rgba(245,245,240,0.4);font-size:0.8rem">Searching…</div>';
+  sr.classList.add('open');
+  try {
+    const data = await apiFetch(`/search/?s=${encodeURIComponent(q)}&limit=20`);
+    const tracks = data?.data?.items || [];
+    if (!tracks.length) { sr.innerHTML = '<div style="padding:14px;text-align:center;color:rgba(245,245,240,0.4);font-size:0.8rem">No results</div>'; return; }
+    sr.innerHTML = tracks.map((t,i) => {
+      const art = (t.artists||[t.artist]).map(a=>a?.name).filter(Boolean).join(', ');
+      return `<div class="result-item" data-idx="${i}">
+        <img class="result-cover" src="${coverUrl(t.album?.cover,80)}" alt="" loading="lazy"/>
+        <div class="result-info">
+          <div class="result-title">${esc(t.title)}</div>
+          <div class="result-artist">${esc(art)}</div>
+        </div>
+        <span class="result-duration">${fmt(t.duration)}</span>
+      </div>`;
+    }).join('');
+    sr.querySelectorAll('.result-item').forEach(el => {
+      el.onclick = () => {
+        const i = +el.dataset.idx;
+        queue = tracks; qIdx = i;
+        playTrack(tracks[i]);
+        sr.classList.remove('open');
+        si.value = '';
+      };
+    });
+  } catch(e) {
+    sr.innerHTML = `<div style="padding:14px;text-align:center;color:rgba(245,245,240,0.4);font-size:0.8rem">Error: ${e.message}</div>`;
+  }
+}
+
+// ── Toast ──
+let tt;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(tt);
+  tt = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ── API selector ──
+const sel = document.getElementById('api-select');
+if (BASE) {
+  const opt = [...sel.options].find(o => o.value === BASE);
+  if (opt) sel.value = BASE;
+} else {
+  autoConnect();
+}
+sel.onchange = () => {
+  BASE = sel.value;
+  localStorage.setItem('zenel_api', BASE);
+  toast('Switched to ' + BASE.replace('https://',''));
+};
+</script>
 </body>
 </html>
