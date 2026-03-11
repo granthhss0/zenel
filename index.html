@@ -32,8 +32,9 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       padding: 32px 40px 40px;
-      gap: 0;
+      gap: 40px;
       color: var(--text);
       font-family: 'Instrument Sans', sans-serif;
     }
@@ -44,7 +45,6 @@
       max-width: 560px;
       position: relative;
       flex-shrink: 0;
-      margin-bottom: 40px;
     }
 
     #search-wrap svg.ico {
@@ -97,13 +97,11 @@
 
     /* ── Player row ── */
     #player-row {
-      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 56px;
-      width: 100%;
-      min-height: 0;
+      flex-shrink: 0;
     }
 
     /* ── Cover ── */
@@ -144,12 +142,12 @@
 
     /* ── Right panel ── */
     #right {
-      flex: 1;
-      min-width: 0;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      align-items: flex-start;
       gap: 0;
+      width: 300px;
     }
 
     #track-title {
