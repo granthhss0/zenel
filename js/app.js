@@ -10,6 +10,53 @@ document.addEventListener('DOMContentLoaded', () => {
   const instanceSelect = document.getElementById('api-instance');
   const customInput = document.getElementById('custom-api');
 
+  // All known API instances (sourced from github.com/EduardPrigoana/hifi-instances)
+  const KNOWN_INSTANCES = [
+    'https://ohio.monochrome.tf',
+    'https://virginia.monochrome.tf',
+    'https://oregon.monochrome.tf',
+    'https://frankfurt.monochrome.tf',
+    'https://singapore.monochrome.tf',
+    'https://triton.squid.wtf',
+    'https://aether.squid.wtf',
+    'https://zeus.squid.wtf',
+    'https://kraken.squid.wtf',
+    'https://phoenix.squid.wtf',
+    'https://shiva.squid.wtf',
+    'https://chaos.squid.wtf',
+    'https://wolf.qqdl.site',
+    'https://maus.qqdl.site',
+    'https://vogel.qqdl.site',
+    'https://katze.qqdl.site',
+    'https://hund.qqdl.site',
+    'https://tidal.401658.xyz',
+  ];
+
+  async function pingInstance(url) {
+    try {
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 4000);
+      const r = await fetch(`${url}/search/?s=test&limit=1`, { signal: ctrl.signal });
+      clearTimeout(timeout);
+      return r.ok;
+    } catch { return false; }
+  }
+
+  async function autoSelectInstance() {
+    ui.toast('Finding a live instance…');
+    for (const url of KNOWN_INSTANCES) {
+      if (await pingInstance(url)) {
+        api.setBase(url);
+        const opt = [...instanceSelect.options].find(o => o.value === url);
+        if (opt) instanceSelect.value = url;
+        localStorage.setItem('zenel_api', url);
+        ui.toast(`Connected: ${url.replace('https://', '')}`);
+        return;
+      }
+    }
+    ui.toast('No reachable instance found — enter a custom URL in the sidebar.');
+  }
+
   const savedInstance = localStorage.getItem('zenel_api');
   if (savedInstance) {
     const opt = [...instanceSelect.options].find(o => o.value === savedInstance);
@@ -20,6 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
       customInput.style.display = '';
     }
     api.setBase(savedInstance);
+  } else {
+    // No saved instance — auto-ping to find a live one
+    autoSelectInstance();
   }
 
   instanceSelect.addEventListener('change', () => {
