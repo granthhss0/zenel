@@ -10,54 +10,45 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0e0e0e;
       --text: #f5f5f0;
       --muted: rgba(245,245,240,0.45);
-      --btn-bg: rgba(255,255,255,0.1);
-      --btn-hover: rgba(255,255,255,0.18);
-      --radius: 14px;
+      --dim: rgba(245,245,240,0.2);
     }
 
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Instrument Sans', sans-serif;
-      overflow: hidden;
-    }
+    html, body { height: 100%; background: #0e0e0e; overflow: hidden; }
 
-    #bg-art {
-      position: fixed;
-      inset: -40px;
-      background-size: cover;
-      background-position: center;
-      filter: blur(80px) saturate(1.4) brightness(0.35);
-      transition: background-image 0.8s ease;
+    /* blurred bg */
+    #bg {
+      position: fixed; inset: -60px;
+      background-size: cover; background-position: center;
+      filter: blur(90px) saturate(1.5) brightness(0.28);
+      transition: background-image 1s ease;
       z-index: 0;
     }
 
     #app {
-      position: relative;
-      z-index: 1;
+      position: relative; z-index: 1;
       height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 28px 20px 36px;
+      padding: 32px 40px 40px;
+      gap: 0;
+      color: var(--text);
+      font-family: 'Instrument Sans', sans-serif;
     }
 
-    /* Search */
+    /* ── Search ── */
     #search-wrap {
       width: 100%;
-      max-width: 480px;
+      max-width: 560px;
       position: relative;
       flex-shrink: 0;
+      margin-bottom: 40px;
     }
 
-    #search-wrap > svg {
-      position: absolute;
-      left: 14px;
-      top: 50%;
+    #search-wrap svg.ico {
+      position: absolute; left: 16px; top: 50%;
       transform: translateY(-50%);
       width: 15px; height: 15px;
       stroke: var(--muted); fill: none;
@@ -67,339 +58,221 @@
 
     #search-input {
       width: 100%;
-      background: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.07);
       border: 1px solid rgba(255,255,255,0.1);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       color: var(--text);
       font-family: 'Instrument Sans', sans-serif;
-      font-size: 0.88rem;
-      padding: 11px 14px 11px 40px;
-      border-radius: 30px;
+      font-size: 0.9rem;
+      padding: 13px 16px 13px 44px;
+      border-radius: 32px;
       outline: none;
-      transition: background 0.2s, border-color 0.2s;
+      transition: background .2s, border-color .2s;
     }
-    #search-input:focus {
-      background: rgba(255,255,255,0.13);
-      border-color: rgba(255,255,255,0.22);
-    }
+    #search-input:focus { background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.2); }
     #search-input::placeholder { color: var(--muted); }
 
     #search-results {
-      position: absolute;
-      top: calc(100% + 8px);
-      left: 0; right: 0;
-      background: rgba(16,16,16,0.94);
+      position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+      background: rgba(14,14,14,0.95);
       border: 1px solid rgba(255,255,255,0.1);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border-radius: var(--radius);
-      overflow: hidden;
-      max-height: 360px;
-      overflow-y: auto;
-      display: none;
-      z-index: 100;
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border-radius: 16px;
+      overflow: hidden; max-height: 380px; overflow-y: auto;
+      display: none; z-index: 200;
     }
     #search-results.open { display: block; }
 
-    .result-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 14px;
-      cursor: pointer;
-      transition: background 0.15s;
+    .ri {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; cursor: pointer;
+      transition: background .15s;
     }
-    .result-item:hover { background: rgba(255,255,255,0.07); }
+    .ri:hover { background: rgba(255,255,255,0.06); }
+    .ri img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; background: #222; flex-shrink: 0; }
+    .ri-info { min-width: 0; }
+    .ri-title { font-size: 0.84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ri-artist { font-size: 0.74rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ri-dur { font-size: 0.72rem; color: var(--muted); margin-left: auto; flex-shrink: 0; }
 
-    .result-cover {
-      width: 40px; height: 40px;
-      border-radius: 6px;
-      object-fit: cover;
-      background: #222;
-      flex-shrink: 0;
-    }
-
-    .result-info { min-width: 0; }
-    .result-title {
-      font-size: 0.84rem;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .result-artist {
-      font-size: 0.74rem; color: var(--muted);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .result-duration {
-      font-size: 0.72rem; color: var(--muted);
-      margin-left: auto; flex-shrink: 0;
-    }
-
-    /* Cover */
-    #cover-wrap {
+    /* ── Player row ── */
+    #player-row {
       flex: 1;
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 56px;
       width: 100%;
-      padding: 24px 0 16px;
+      max-width: 900px;
+      min-height: 0;
     }
 
+    /* ── Cover ── */
     #cover {
-      width: min(340px, 70vw, 60vh);
-      height: min(340px, 70vw, 60vh);
-      border-radius: 20px;
+      flex-shrink: 0;
+      width: min(320px, 40vw, 56vh);
+      height: min(320px, 40vw, 56vh);
+      border-radius: 18px;
       object-fit: cover;
-      background: #1a1a1a;
-      box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
-      transition: opacity 0.4s, transform 0.4s;
+      background: #1c1c1c;
+      box-shadow: 0 28px 70px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05);
+      transition: opacity .4s, transform .4s;
       display: block;
     }
-    #cover.loading { opacity: 0.4; transform: scale(0.97); }
+    #cover.loading { opacity: 0.35; transform: scale(0.97); }
 
-    /* Track info */
-    #track-info {
-      text-align: center;
-      width: 100%;
-      max-width: 380px;
-      padding: 0 8px;
-      flex-shrink: 0;
+    /* ── Right panel ── */
+    #right {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0;
     }
 
     #track-title {
       font-family: 'Instrument Serif', serif;
-      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
       font-weight: 400;
-      line-height: 1.15;
+      line-height: 1.1;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      margin-bottom: 6px;
+      margin-bottom: 10px;
     }
 
     #track-artist {
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       color: var(--muted);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 36px;
     }
 
-    /* Progress */
-    #progress-wrap {
-      width: 100%;
-      max-width: 380px;
-      margin-top: 20px;
-      flex-shrink: 0;
-    }
-
+    /* progress */
     #progress-bar {
-      width: 100%;
-      height: 3px;
+      width: 100%; height: 3px;
       background: rgba(255,255,255,0.12);
-      border-radius: 3px;
-      cursor: pointer;
-      transition: height 0.15s;
+      border-radius: 3px; cursor: pointer;
+      transition: height .15s;
+      margin-bottom: 8px;
     }
     #progress-bar:hover { height: 5px; }
-
-    #progress-fill {
-      height: 100%;
-      background: var(--text);
-      border-radius: 3px;
-      width: 0%;
-      pointer-events: none;
-    }
+    #progress-fill { height: 100%; background: var(--text); border-radius: 3px; width: 0%; pointer-events: none; }
 
     #time-row {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 6px;
-      font-size: 0.68rem;
-      color: var(--muted);
+      display: flex; justify-content: space-between;
+      font-size: 0.68rem; color: var(--muted);
       font-variant-numeric: tabular-nums;
+      margin-bottom: 28px;
     }
 
-    /* Controls */
+    /* controls */
     #controls {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      margin-top: 22px;
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      background: rgba(255,255,255,0.09);
+      border: none; color: var(--text);
+      border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, transform .1s;
       flex-shrink: 0;
     }
+    .btn:hover { background: rgba(255,255,255,0.16); }
+    .btn:active { transform: scale(0.91); }
 
-    .ctrl-btn {
-      background: var(--btn-bg);
-      border: none;
-      color: var(--text);
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s, transform 0.1s;
-      flex-shrink: 0;
-    }
-    .ctrl-btn:hover { background: var(--btn-hover); }
-    .ctrl-btn:active { transform: scale(0.92); }
+    .btn.sm { width: 46px; height: 46px; }
+    .btn.sm svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-    .ctrl-btn.sm { width: 44px; height: 44px; }
-    .ctrl-btn.sm svg {
-      width: 18px; height: 18px;
-      stroke: currentColor; fill: none;
-      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
-    }
+    .btn.lg { width: 64px; height: 64px; background: var(--text); color: #0e0e0e; }
+    .btn.lg:hover { background: rgba(245,245,240,0.86); }
+    .btn.lg svg { width: 22px; height: 22px; fill: currentColor; stroke: none; }
 
-    .ctrl-btn.lg {
-      width: 62px; height: 62px;
-      background: var(--text);
-      color: #0e0e0e;
+    /* volume */
+    #vol-wrap {
+      display: flex; align-items: center; gap: 10px;
     }
-    .ctrl-btn.lg:hover { background: rgba(245,245,240,0.88); }
-    .ctrl-btn.lg svg { width: 22px; height: 22px; fill: currentColor; stroke: none; }
-
-    /* Volume */
-    #volume-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 18px;
-      flex-shrink: 0;
-    }
-    #volume-wrap svg {
-      width: 14px; height: 14px;
-      stroke: var(--muted); fill: none;
-      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
-    }
-    #volume-slider {
+    #vol-wrap svg { width: 14px; height: 14px; stroke: var(--dim); fill: none; stroke-width: 2; stroke-linecap: round; flex-shrink: 0; }
+    #vol {
       -webkit-appearance: none; appearance: none;
-      width: 100px; height: 3px;
-      border-radius: 3px;
-      background: rgba(255,255,255,0.15);
-      outline: none; cursor: pointer;
+      width: 110px; height: 3px; border-radius: 3px;
+      background: rgba(255,255,255,0.14); outline: none; cursor: pointer;
     }
-    #volume-slider::-webkit-slider-thumb {
+    #vol::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 12px; height: 12px;
-      border-radius: 50%;
+      width: 12px; height: 12px; border-radius: 50%;
       background: var(--text);
     }
 
-    /* API pill */
-    #api-pill {
-      position: fixed;
-      top: 18px; right: 18px;
-      z-index: 50;
-    }
-    #api-select {
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.1);
-      backdrop-filter: blur(16px);
-      color: var(--muted);
-      font-family: 'Instrument Sans', sans-serif;
-      font-size: 0.7rem;
-      padding: 5px 10px;
-      border-radius: 20px;
-      outline: none; cursor: pointer;
-      appearance: none; -webkit-appearance: none;
-      max-width: 160px;
-    }
-
-    /* Toast */
+    /* toast */
     #toast {
-      position: fixed;
-      bottom: 24px; left: 50%;
-      transform: translateX(-50%);
-      background: rgba(26,26,26,0.95);
-      border: 1px solid rgba(255,255,255,0.1);
-      color: var(--text);
-      font-size: 0.78rem;
-      padding: 8px 18px;
-      border-radius: 30px;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.25s;
-      z-index: 999;
-      white-space: nowrap;
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: rgba(20,20,20,0.95); border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text); font-family: 'Instrument Sans', sans-serif;
+      font-size: 0.78rem; padding: 8px 20px; border-radius: 30px;
+      pointer-events: none; opacity: 0; transition: opacity .25s;
+      z-index: 999; white-space: nowrap;
     }
     #toast.show { opacity: 1; }
 
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
   </style>
 </head>
 <body>
-
-<div id="bg-art"></div>
-
-<div id="api-pill">
-  <select id="api-select">
-    <option value="https://ohio.monochrome.tf">ohio · monochrome</option>
-    <option value="https://virginia.monochrome.tf">virginia · monochrome</option>
-    <option value="https://oregon.monochrome.tf">oregon · monochrome</option>
-    <option value="https://frankfurt.monochrome.tf">frankfurt · monochrome</option>
-    <option value="https://singapore.monochrome.tf">singapore · monochrome</option>
-    <option value="https://triton.squid.wtf">triton · squid</option>
-    <option value="https://aether.squid.wtf">aether · squid</option>
-    <option value="https://zeus.squid.wtf">zeus · squid</option>
-    <option value="https://kraken.squid.wtf">kraken · squid</option>
-    <option value="https://phoenix.squid.wtf">phoenix · squid</option>
-    <option value="https://shiva.squid.wtf">shiva · squid</option>
-    <option value="https://chaos.squid.wtf">chaos · squid</option>
-    <option value="https://wolf.qqdl.site">wolf · qqdl</option>
-    <option value="https://maus.qqdl.site">maus · qqdl</option>
-    <option value="https://vogel.qqdl.site">vogel · qqdl</option>
-    <option value="https://katze.qqdl.site">katze · qqdl</option>
-    <option value="https://hund.qqdl.site">hund · qqdl</option>
-    <option value="https://tidal.401658.xyz">tidal · 401658</option>
-  </select>
-</div>
+<div id="bg"></div>
 
 <div id="app">
+
+  <!-- Search bar -->
   <div id="search-wrap">
-    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input id="search-input" type="text" placeholder="Search for a song…" autocomplete="off" />
     <div id="search-results"></div>
   </div>
 
-  <div id="cover-wrap">
+  <!-- Cover left · Controls right -->
+  <div id="player-row">
     <img id="cover" src="" alt="" />
-  </div>
 
-  <div id="track-info">
-    <div id="track-title">Zenel</div>
-    <div id="track-artist">Search for a song to begin</div>
-  </div>
+    <div id="right">
+      <div id="track-title">Zenel</div>
+      <div id="track-artist">Search above to start listening</div>
 
-  <div id="progress-wrap">
-    <div id="progress-bar"><div id="progress-fill"></div></div>
-    <div id="time-row">
-      <span id="time-cur">0:00</span>
-      <span id="time-tot">0:00</span>
+      <div id="progress-bar"><div id="progress-fill"></div></div>
+      <div id="time-row">
+        <span id="tc">0:00</span>
+        <span id="tt">0:00</span>
+      </div>
+
+      <div id="controls">
+        <button class="btn sm" id="btn-prev">
+          <svg viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+        </button>
+        <button class="btn lg" id="btn-play">
+          <svg id="icon-play"  viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg id="icon-pause" viewBox="0 0 24 24" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+        <button class="btn sm" id="btn-next">
+          <svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+        </button>
+      </div>
+
+      <div id="vol-wrap">
+        <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        <input id="vol" type="range" min="0" max="1" step="0.01" value="1" />
+      </div>
     </div>
   </div>
 
-  <div id="controls">
-    <button class="ctrl-btn sm" id="btn-prev">
-      <svg viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
-    </button>
-    <button class="ctrl-btn lg" id="btn-play">
-      <svg id="icon-play"  viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-      <svg id="icon-pause" viewBox="0 0 24 24" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-    </button>
-    <button class="ctrl-btn sm" id="btn-next">
-      <svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
-    </button>
-  </div>
-
-  <div id="volume-wrap">
-    <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-    <input id="volume-slider" type="range" min="0" max="1" step="0.01" value="1" />
-  </div>
 </div>
 
 <div id="toast"></div>
 <audio id="audio"></audio>
 
 <script>
+// ── API ──
 let BASE = localStorage.getItem('zenel_api') || '';
 
 const INSTANCES = [
@@ -418,8 +291,7 @@ async function ping(url) {
   try {
     const ac = new AbortController();
     setTimeout(() => ac.abort(), 3500);
-    const r = await fetch(`${url}/search/?s=test&limit=1`, { signal: ac.signal });
-    return r.ok;
+    return (await fetch(`${url}/search/?s=test&limit=1`, { signal: ac.signal })).ok;
   } catch { return false; }
 }
 
@@ -427,15 +299,12 @@ async function autoConnect() {
   toast('Finding a live instance…');
   for (const url of INSTANCES) {
     if (await ping(url)) {
-      BASE = url;
-      localStorage.setItem('zenel_api', url);
-      const opt = [...document.getElementById('api-select').options].find(o => o.value === url);
-      if (opt) document.getElementById('api-select').value = url;
-      toast('Connected: ' + url.replace('https://', ''));
+      BASE = url; localStorage.setItem('zenel_api', url);
+      toast('Connected: ' + url.replace('https://',''));
       return;
     }
   }
-  toast('No live instance found — pick one from the menu.');
+  toast('No live instance found.');
 }
 
 async function apiFetch(path) {
@@ -444,140 +313,118 @@ async function apiFetch(path) {
   return r.json();
 }
 
-function coverUrl(uuid, size) {
-  if (!uuid) return '';
-  return `https://resources.tidal.com/images/${uuid.replace(/-/g,'/')}/${size}x${size}.jpg`;
-}
+const coverUrl = (uuid, size) =>
+  uuid ? `https://resources.tidal.com/images/${uuid.replace(/-/g,'/')}/${size}x${size}.jpg` : '';
 
-function fmt(s) {
-  if (!s || isNaN(s)) return '0:00';
-  return Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
-}
-
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+const fmt = s => (!s||isNaN(s)) ? '0:00' : Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 // ── State ──
 let queue = [], qIdx = -1, currentTrack = null;
 const audio = document.getElementById('audio');
 
-// ── Play ──
+// ── Playback ──
 async function playTrack(track) {
   currentTrack = track;
-  const cover = document.getElementById('cover');
-  cover.classList.add('loading');
-
-  const artists = (track.artists || [track.artist]).map(a => a?.name).filter(Boolean).join(', ');
+  const coverEl = document.getElementById('cover');
+  coverEl.classList.add('loading');
+  const artists = (track.artists||[track.artist]).map(a=>a?.name).filter(Boolean).join(', ');
   const src = coverUrl(track.album?.cover, 640);
-
   document.getElementById('track-title').textContent = track.title || '—';
   document.getElementById('track-artist').textContent = artists;
-  document.getElementById('bg-art').style.backgroundImage = src ? `url(${src})` : '';
-  cover.src = src;
-  cover.onload = () => cover.classList.remove('loading');
-
+  document.getElementById('bg').style.backgroundImage = src ? `url(${src})` : '';
+  coverEl.src = src;
+  coverEl.onload = () => coverEl.classList.remove('loading');
   try {
     const data = await apiFetch(`/track/?id=${track.id}&quality=LOSSLESS`);
-    const stream = data?.data;
-    if (!stream?.manifest) throw new Error('No manifest');
-    const raw = atob(stream.manifest);
-    if ((stream.manifestMimeType||'').includes('tidal.bts')) {
-      audio.src = JSON.parse(raw).urls?.[0];
-    } else {
-      audio.src = URL.createObjectURL(new Blob([raw], {type:'application/dash+xml'}));
-    }
-    audio.load();
-    await audio.play();
-  } catch(e) {
-    toast('Playback error: ' + e.message);
-    cover.classList.remove('loading');
-  }
+    const s = data?.data;
+    if (!s?.manifest) throw new Error('No manifest');
+    const raw = atob(s.manifest);
+    audio.src = (s.manifestMimeType||'').includes('tidal.bts')
+      ? JSON.parse(raw).urls?.[0]
+      : URL.createObjectURL(new Blob([raw],{type:'application/dash+xml'}));
+    audio.load(); await audio.play();
+  } catch(e) { toast('Error: '+e.message); coverEl.classList.remove('loading'); }
 }
 
-function setPlayIcon(playing) {
-  document.getElementById('icon-play').style.display = playing ? 'none' : '';
-  document.getElementById('icon-pause').style.display = playing ? '' : 'none';
-}
+const setPlayIcon = p => {
+  document.getElementById('icon-play').style.display = p ? 'none' : '';
+  document.getElementById('icon-pause').style.display = p ? '' : 'none';
+};
 
 audio.addEventListener('timeupdate', () => {
-  const f = audio.duration ? audio.currentTime / audio.duration : 0;
-  document.getElementById('progress-fill').style.width = (f*100) + '%';
-  document.getElementById('time-cur').textContent = fmt(audio.currentTime);
-  document.getElementById('time-tot').textContent = fmt(audio.duration);
+  const f = audio.duration ? audio.currentTime/audio.duration : 0;
+  document.getElementById('progress-fill').style.width = (f*100)+'%';
+  document.getElementById('tc').textContent = fmt(audio.currentTime);
+  document.getElementById('tt').textContent = fmt(audio.duration);
 });
 audio.addEventListener('ended', () => { if (qIdx+1 < queue.length) playTrack(queue[++qIdx]); else setPlayIcon(false); });
 audio.addEventListener('play',  () => setPlayIcon(true));
 audio.addEventListener('pause', () => setPlayIcon(false));
 
-// ── Controls ──
 document.getElementById('btn-play').onclick = () => { if (currentTrack) audio.paused ? audio.play() : audio.pause(); };
 document.getElementById('btn-next').onclick = () => { if (qIdx+1 < queue.length) playTrack(queue[++qIdx]); };
 document.getElementById('btn-prev').onclick = () => {
   if (audio.currentTime > 3) { audio.currentTime = 0; return; }
   if (qIdx > 0) playTrack(queue[--qIdx]);
 };
-document.getElementById('volume-slider').oninput = e => { audio.volume = +e.target.value; };
+document.getElementById('vol').oninput = e => { audio.volume = +e.target.value; };
 
+// scrub
 const pb = document.getElementById('progress-bar');
-let scrubbing = false;
-pb.addEventListener('mousedown', e => { scrubbing = true; doScrub(e); });
-document.addEventListener('mousemove', e => { if (scrubbing) doScrub(e); });
-document.addEventListener('mouseup', () => { scrubbing = false; });
+let scrub = false;
+pb.addEventListener('mousedown', e => { scrub=true; doScrub(e); });
+document.addEventListener('mousemove', e => { if(scrub) doScrub(e); });
+document.addEventListener('mouseup', () => scrub=false);
 function doScrub(e) {
   const r = pb.getBoundingClientRect();
-  if (audio.duration) audio.currentTime = Math.max(0, Math.min(1, (e.clientX-r.left)/r.width)) * audio.duration;
+  if (audio.duration) audio.currentTime = Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*audio.duration;
 }
 
 document.addEventListener('keydown', e => {
-  if (document.activeElement.tagName === 'INPUT') return;
-  if (e.code === 'Space') { e.preventDefault(); document.getElementById('btn-play').click(); }
-  if (e.code === 'ArrowRight') document.getElementById('btn-next').click();
-  if (e.code === 'ArrowLeft') document.getElementById('btn-prev').click();
+  if (document.activeElement.tagName==='INPUT') return;
+  if (e.code==='Space') { e.preventDefault(); document.getElementById('btn-play').click(); }
+  if (e.code==='ArrowRight') document.getElementById('btn-next').click();
+  if (e.code==='ArrowLeft')  document.getElementById('btn-prev').click();
 });
 
 // ── Search ──
 const si = document.getElementById('search-input');
 const sr = document.getElementById('search-results');
-let dbt = null;
-
+let dbt;
 si.addEventListener('input', () => {
   clearTimeout(dbt);
   if (!si.value.trim()) { sr.classList.remove('open'); return; }
-  dbt = setTimeout(() => runSearch(si.value.trim()), 380);
+  dbt = setTimeout(() => runSearch(si.value.trim()), 360);
 });
-si.addEventListener('keydown', e => { if (e.key === 'Escape') { sr.classList.remove('open'); si.blur(); } });
+si.addEventListener('keydown', e => { if (e.key==='Escape') { sr.classList.remove('open'); si.blur(); } });
 document.addEventListener('click', e => { if (!document.getElementById('search-wrap').contains(e.target)) sr.classList.remove('open'); });
 
 async function runSearch(q) {
-  sr.innerHTML = '<div style="padding:14px;text-align:center;color:rgba(245,245,240,0.4);font-size:0.8rem">Searching…</div>';
+  sr.innerHTML = '<div style="padding:14px;text-align:center;color:rgba(245,245,240,0.35);font-size:0.8rem">Searching…</div>';
   sr.classList.add('open');
   try {
     const data = await apiFetch(`/search/?s=${encodeURIComponent(q)}&limit=20`);
     const tracks = data?.data?.items || [];
-    if (!tracks.length) { sr.innerHTML = '<div style="padding:14px;text-align:center;color:rgba(245,245,240,0.4);font-size:0.8rem">No results</div>'; return; }
+    if (!tracks.length) { sr.innerHTML = '<div style="padding:14px;text-align:center;color:rgba(245,245,240,0.35);font-size:0.8rem">No results</div>'; return; }
     sr.innerHTML = tracks.map((t,i) => {
       const art = (t.artists||[t.artist]).map(a=>a?.name).filter(Boolean).join(', ');
-      return `<div class="result-item" data-idx="${i}">
-        <img class="result-cover" src="${coverUrl(t.album?.cover,80)}" alt="" loading="lazy"/>
-        <div class="result-info">
-          <div class="result-title">${esc(t.title)}</div>
-          <div class="result-artist">${esc(art)}</div>
-        </div>
-        <span class="result-duration">${fmt(t.duration)}</span>
+      return `<div class="ri" data-i="${i}">
+        <img src="${coverUrl(t.album?.cover,80)}" alt="" loading="lazy"/>
+        <div class="ri-info"><div class="ri-title">${esc(t.title)}</div><div class="ri-artist">${esc(art)}</div></div>
+        <span class="ri-dur">${fmt(t.duration)}</span>
       </div>`;
     }).join('');
-    sr.querySelectorAll('.result-item').forEach(el => {
+    sr.querySelectorAll('.ri').forEach(el => {
       el.onclick = () => {
-        const i = +el.dataset.idx;
+        const i = +el.dataset.i;
         queue = tracks; qIdx = i;
         playTrack(tracks[i]);
-        sr.classList.remove('open');
-        si.value = '';
+        sr.classList.remove('open'); si.value = '';
       };
     });
   } catch(e) {
-    sr.innerHTML = `<div style="padding:14px;text-align:center;color:rgba(245,245,240,0.4);font-size:0.8rem">Error: ${e.message}</div>`;
+    sr.innerHTML = `<div style="padding:14px;text-align:center;color:rgba(245,245,240,0.35);font-size:0.8rem">Error: ${e.message}</div>`;
   }
 }
 
@@ -585,25 +432,11 @@ async function runSearch(q) {
 let tt;
 function toast(msg) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(tt);
-  tt = setTimeout(() => el.classList.remove('show'), 2600);
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(tt); tt = setTimeout(() => el.classList.remove('show'), 2600);
 }
 
-// ── API selector ──
-const sel = document.getElementById('api-select');
-if (BASE) {
-  const opt = [...sel.options].find(o => o.value === BASE);
-  if (opt) sel.value = BASE;
-} else {
-  autoConnect();
-}
-sel.onchange = () => {
-  BASE = sel.value;
-  localStorage.setItem('zenel_api', BASE);
-  toast('Switched to ' + BASE.replace('https://',''));
-};
+if (!BASE) autoConnect();
 </script>
 </body>
 </html>
