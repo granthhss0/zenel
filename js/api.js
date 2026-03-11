@@ -16,7 +16,7 @@
  */
 
 class HifiAPI {
-  constructor(baseUrl = 'https://ohio.monochrome.tf') {
+  constructor(baseUrl = 'https://monochrome.tf') {
     this.base = baseUrl.replace(/\/$/, '');
   }
 
