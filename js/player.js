@@ -1,163 +1,424 @@
-/**
- * Zenel — Player
- * Handles audio element, queue management, playback state.
- */
-
-class ZenelPlayer {
-  constructor() {
-    this.audio = document.getElementById('audio-element');
-    this.queue = [];
-    this.queueIndex = -1;
-    this.shuffle = false;
-    this.repeat = false; // false | 'one' | 'all'
-    this.currentTrack = null;
-    this.currentStream = null;
-    this._dashPlayer = null;
-    this._blobUrl = null;
-
-    this._bindAudio();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gemini</title>
+<style>
+  @font-face {
+    font-family: 'system-serif';
+    src: local('Iowan Old Style'), local('Palatino Linotype'), local('Georgia');
   }
 
-  /* ---- Queue ---- */
-  setQueue(tracks, startIndex = 0) {
-    this.queue = tracks;
-    this.queueIndex = startIndex;
-    this._playAtIndex(startIndex);
+  :root {
+    --ink: #14131b;
+    --panel: #1c1b26;
+    --panel-2: #232230;
+    --line: #322f42;
+    --text: #ece9f4;
+    --muted: #918da3;
+    --gold: #c9a15e;
+    --violet: #8f83d6;
+    --error: #d97878;
   }
 
-  addToQueue(track) {
-    this.queue.push(track);
-    ui.renderQueue();
-    ui.toast(`Added "${track.title}" to queue`);
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
   }
 
-  async _playAtIndex(i) {
-    if (i < 0 || i >= this.queue.length) return;
-    this.queueIndex = i;
-    const track = this.queue[i];
-    await this.playTrack(track);
+  body {
+    background: var(--ink);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(143,131,214,0.08), transparent 40%),
+      radial-gradient(circle at 85% 92%, rgba(201,161,94,0.07), transparent 40%);
+    background-attachment: fixed;
   }
 
-  /* ---- Play a track object ---- */
-  async playTrack(track) {
-    if (!track) return;
-    this.currentTrack = track;
+  header {
+    padding: 28px 24px 18px;
+    text-align: center;
+    position: relative;
+  }
 
-    ui.setPlayerMeta(track);
-    ui.showLoading(true);
+  header .mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  header .mark svg { width: 20px; height: 20px; }
+
+  header h1 {
+    font-family: 'system-serif', Georgia, serif;
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: 0.01em;
+    margin: 0;
+    color: var(--text);
+  }
+
+  header p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .toolbar {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  select {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 7px;
+  }
+
+  .icon-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    line-height: 1;
+  }
+  .icon-btn:hover { color: var(--text); border-color: var(--violet); }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+  }
+
+  #chat {
+    width: 100%;
+    max-width: 640px;
+    padding: 12px 20px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .empty {
+    margin-top: 18vh;
+    text-align: center;
+    color: var(--muted);
+  }
+  .empty .glyph {
+    font-family: 'system-serif', Georgia, serif;
+    font-size: 40px;
+    color: var(--violet);
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+  .empty p { font-size: 14px; max-width: 320px; margin: 0 auto; line-height: 1.6; }
+
+  .row { display: flex; flex-direction: column; gap: 6px; }
+  .row.user { align-items: flex-end; }
+  .row.ai { align-items: flex-start; }
+
+  .label {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 0 4px;
+  }
+
+  .bubble {
+    max-width: 500px;
+    padding: 12px 16px;
+    line-height: 1.6;
+    font-size: 14.5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    border-radius: 4px;
+  }
+
+  .row.user .bubble {
+    background: transparent;
+    border-right: 2px solid var(--violet);
+    color: var(--text);
+    padding-right: 14px;
+    text-align: right;
+  }
+
+  .row.ai .bubble {
+    background: var(--panel);
+    border-left: 2px solid var(--gold);
+    border-radius: 4px 10px 10px 4px;
+  }
+
+  .row.ai .bubble.pending {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .row.ai .bubble.error {
+    border-left-color: var(--error);
+    color: var(--error);
+    background: rgba(217,120,120,0.08);
+  }
+
+  .dot-flow span {
+    display: inline-block;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--muted);
+    margin-right: 3px;
+    animation: pulse 1.2s infinite ease-in-out;
+  }
+  .dot-flow span:nth-child(2) { animation-delay: 0.15s; }
+  .dot-flow span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes pulse {
+    0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+    40% { opacity: 1; transform: scale(1); }
+  }
+
+  form {
+    display: flex;
+    justify-content: center;
+    padding: 16px 20px 24px;
+  }
+
+  .composer {
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 8px 8px 8px 16px;
+    align-items: flex-end;
+  }
+
+  .composer:focus-within {
+    border-color: var(--violet);
+  }
+
+  textarea {
+    flex: 1;
+    resize: none;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 14.5px;
+    font-family: inherit;
+    line-height: 1.5;
+    padding: 8px 0;
+    max-height: 140px;
+  }
+
+  textarea::placeholder { color: var(--muted); }
+
+  button[type="submit"] {
+    background: var(--violet);
+    border: none;
+    color: #14131b;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s;
+  }
+  button[type="submit"]:disabled { opacity: 0.35; cursor: not-allowed; }
+  button[type="submit"]:not(:disabled):hover { opacity: 0.85; }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="toolbar">
+    <select id="model">
+      <option value="gemini-2.5-flash">2.5 flash</option>
+      <option value="gemini-2.5-pro">2.5 pro</option>
+      <option value="gemini-2.0-flash">2.0 flash</option>
+    </select>
+    <button class="icon-btn" id="clearBtn" title="Clear conversation">↺</button>
+  </div>
+  <div class="mark">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M12 2C12 8 18 10 22 10C18 10 12 12 12 22C12 12 6 10 2 10C6 10 12 8 12 2Z" fill="#c9a15e" fill-opacity="0.9"/>
+    </svg>
+    <h1>Gemini</h1>
+  </div>
+  <p>A quiet place to think out loud.</p>
+</header>
+
+<main>
+  <div id="chat">
+    <div class="empty" id="emptyState">
+      <div class="glyph">"</div>
+      <p>Start a conversation. Whatever you type here goes straight to Gemini and back — nothing in between.</p>
+    </div>
+  </div>
+</main>
+
+<form id="form">
+  <div class="composer">
+    <textarea id="input" rows="1" placeholder="Say something..."></textarea>
+    <button type="submit" id="sendBtn" title="Send">↑</button>
+  </div>
+</form>
+
+<script>
+  // ── Put your Gemini API key here ─────────────────────────────
+  const API_KEY = "PASTE_YOUR_GEMINI_API_KEY_HERE";
+  // ──────────────────────────────────────────────────────────────
+
+  const chatEl = document.getElementById('chat');
+  const emptyState = document.getElementById('emptyState');
+  const form = document.getElementById('form');
+  const input = document.getElementById('input');
+  const modelEl = document.getElementById('model');
+  const sendBtn = document.getElementById('sendBtn');
+  const clearBtn = document.getElementById('clearBtn');
+
+  let history = [];
+
+  function hideEmpty() {
+    if (emptyState) emptyState.remove();
+  }
+
+  function addRow(role, content, opts = {}) {
+    const row = document.createElement('div');
+    row.className = 'row ' + role;
+
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = role === 'user' ? 'you' : 'gemini';
+    row.appendChild(label);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble' + (opts.pending ? ' pending' : '') + (opts.error ? ' error' : '');
+    if (opts.pending) {
+      bubble.innerHTML = '<span class="dot-flow"><span></span><span></span><span></span></span>';
+    } else {
+      bubble.textContent = content;
+    }
+    row.appendChild(bubble);
+
+    chatEl.appendChild(row);
+    chatEl.parentElement.scrollTop = chatEl.parentElement.scrollHeight;
+    return { row, bubble };
+  }
+
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      form.requestSubmit();
+    }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    history = [];
+    chatEl.innerHTML = '';
+    chatEl.appendChild(emptyState);
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+
+    if (!API_KEY || API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
+      hideEmpty();
+      addRow('ai', 'No API key set. Open the file and paste your key into the API_KEY constant near the top of the script.', { error: true });
+      return;
+    }
+
+    hideEmpty();
+    addRow('user', text);
+    history.push({ role: 'user', parts: [{ text }] });
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    const { row: pendingRow } = addRow('ai', '', { pending: true });
+
+    const model = modelEl.value;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(API_KEY)}`;
 
     try {
-      const stream = await api.getTrackStream(track.id, 'LOSSLESS');
-      this.currentStream = stream;
-      const resolved = api.resolveStreamUrl(stream);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: history })
+      });
 
-      if (!resolved) throw new Error('Could not resolve stream URL');
+      const data = await res.json();
 
-      // Clean up previous blob
-      if (this._blobUrl) { URL.revokeObjectURL(this._blobUrl); this._blobUrl = null; }
-
-      // Tear down dash player if needed
-      if (this._dashPlayer) {
-        try { this._dashPlayer.destroy(); } catch (_) {}
-        this._dashPlayer = null;
+      if (!res.ok) {
+        const msg = (data && data.error && data.error.message) ? data.error.message : `Request failed (${res.status})`;
+        pendingRow.remove();
+        addRow('ai', 'Error: ' + msg, { error: true });
+        history.pop();
+        return;
       }
 
-      if (resolved.type === 'direct') {
-        this.audio.src = resolved.url;
-        this.audio.load();
-        await this.audio.play();
-      } else if (resolved.type === 'dash') {
-        this._blobUrl = resolved.url;
-        // Use dash.js if available, otherwise fall back to native (some browsers support DASH natively)
-        if (window.dashjs) {
-          const dash = dashjs.MediaPlayer().create();
-          dash.initialize(this.audio, resolved.url, true);
-          this._dashPlayer = dash;
-        } else {
-          this.audio.src = resolved.url;
-          this.audio.load();
-          await this.audio.play().catch(() => {});
-        }
+      const reply = data.candidates &&
+                    data.candidates[0] &&
+                    data.candidates[0].content &&
+                    data.candidates[0].content.parts &&
+                    data.candidates[0].content.parts.map(p => p.text || '').join('');
+
+      pendingRow.remove();
+
+      if (!reply) {
+        addRow('ai', 'No reply came back — it may have been blocked. Check the browser console for details.', { error: true });
+        console.log(data);
+        history.pop();
+        return;
       }
 
-      ui.setQualityBadge(stream);
-      ui.updatePlayingState(true);
-      ui.renderQueue();
+      addRow('ai', reply);
+      history.push({ role: 'model', parts: [{ text: reply }] });
+
     } catch (err) {
-      console.error('Playback error:', err);
-      ui.toast('Playback failed: ' + (err.message ?? 'unknown error'));
+      pendingRow.remove();
+      addRow('ai', 'Network error: ' + err.message, { error: true });
+      history.pop();
     } finally {
-      ui.showLoading(false);
+      sendBtn.disabled = false;
+      input.focus();
     }
-  }
+  });
+</script>
 
-  /* ---- Transport ---- */
-  togglePlay() {
-    if (!this.currentTrack) return;
-    if (this.audio.paused) {
-      this.audio.play();
-      ui.updatePlayingState(true);
-    } else {
-      this.audio.pause();
-      ui.updatePlayingState(false);
-    }
-  }
-
-  next() {
-    if (!this.queue.length) return;
-    if (this.repeat === 'one') { this.audio.currentTime = 0; this.audio.play(); return; }
-    let next = this.queueIndex + 1;
-    if (next >= this.queue.length) {
-      if (this.repeat === 'all') next = 0;
-      else return;
-    }
-    this._playAtIndex(next);
-  }
-
-  prev() {
-    if (!this.queue.length) return;
-    if (this.audio.currentTime > 3) { this.audio.currentTime = 0; return; }
-    let prev = this.queueIndex - 1;
-    if (prev < 0) prev = this.repeat === 'all' ? this.queue.length - 1 : 0;
-    this._playAtIndex(prev);
-  }
-
-  seek(fraction) {
-    if (!this.audio.duration) return;
-    this.audio.currentTime = fraction * this.audio.duration;
-  }
-
-  setVolume(v) {
-    this.audio.volume = Math.max(0, Math.min(1, v));
-  }
-
-  toggleShuffle() {
-    this.shuffle = !this.shuffle;
-    document.getElementById('shuffle-btn').classList.toggle('active', this.shuffle);
-  }
-
-  toggleRepeat() {
-    const states = [false, 'one', 'all'];
-    const idx = states.indexOf(this.repeat);
-    this.repeat = states[(idx + 1) % states.length];
-    const btn = document.getElementById('repeat-btn');
-    btn.classList.toggle('active', this.repeat !== false);
-    btn.title = this.repeat === 'one' ? 'Repeat One' : this.repeat === 'all' ? 'Repeat All' : 'Repeat';
-  }
-
-  /* ---- Audio events ---- */
-  _bindAudio() {
-    this.audio.addEventListener('timeupdate', () => ui.updateProgress(this.audio));
-    this.audio.addEventListener('ended', () => {
-      if (this.repeat === 'one') { this.audio.currentTime = 0; this.audio.play(); }
-      else this.next();
-    });
-    this.audio.addEventListener('pause', () => ui.updatePlayingState(false));
-    this.audio.addEventListener('play', () => ui.updatePlayingState(true));
-    this.audio.addEventListener('error', (e) => {
-      console.error('Audio error', e);
-    });
-  }
-}
-
-window.player = new ZenelPlayer();
+</body>
+</html>
