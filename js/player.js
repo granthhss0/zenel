@@ -201,20 +201,109 @@
     padding: 16px 20px 24px;
   }
 
-  .composer {
+  .composer-wrap {
     width: 100%;
     max-width: 640px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .composer {
+    width: 100%;
     display: flex;
     gap: 10px;
     background: var(--panel);
     border: 1px solid var(--line);
     border-radius: 12px;
-    padding: 8px 8px 8px 16px;
+    padding: 8px 8px 8px 8px;
     align-items: flex-end;
   }
 
   .composer:focus-within {
     border-color: var(--violet);
+  }
+
+  .attach-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 18px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .attach-btn:hover { color: var(--gold); }
+
+  .previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .preview-chip {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 12px;
+    color: var(--muted);
+    max-width: 180px;
+  }
+  .preview-chip img {
+    width: 22px;
+    height: 22px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .preview-chip .fname {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .preview-chip .rm {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 0 2px;
+  }
+  .preview-chip .rm:hover { color: var(--error); }
+
+  .attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    justify-content: flex-end;
+  }
+  .row.ai .attachments { justify-content: flex-start; }
+  .attachments img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+  }
+  .attachments .file-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 8px;
   }
 
   textarea {
@@ -285,9 +374,14 @@
 </main>
 
 <form id="form">
-  <div class="composer">
-    <textarea id="input" rows="1" placeholder="Say something..."></textarea>
-    <button type="submit" id="sendBtn" title="Send">↑</button>
+  <div class="composer-wrap">
+    <div class="previews" id="previews"></div>
+    <div class="composer">
+      <input type="file" id="fileInput" accept="image/*,application/pdf" multiple style="display:none;">
+      <button type="button" class="attach-btn" id="attachBtn" title="Attach photos or a PDF">+</button>
+      <textarea id="input" rows="1" placeholder="Say something..."></textarea>
+      <button type="submit" id="sendBtn" title="Send">↑</button>
+    </div>
   </div>
 </form>
 
@@ -303,11 +397,81 @@
   const modelEl = document.getElementById('model');
   const sendBtn = document.getElementById('sendBtn');
   const clearBtn = document.getElementById('clearBtn');
+  const fileInput = document.getElementById('fileInput');
+  const attachBtn = document.getElementById('attachBtn');
+  const previewsEl = document.getElementById('previews');
 
   let history = [];
+  let pendingFiles = []; // { name, mimeType, base64, previewUrl }
+
+  const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15MB, generous local cap
 
   function hideEmpty() {
     if (emptyState) emptyState.remove();
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = () => reject(new Error('Could not read file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  attachBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', async () => {
+    const files = Array.from(fileInput.files || []);
+    for (const file of files) {
+      if (file.size > MAX_FILE_BYTES) {
+        hideEmpty();
+        addRow('ai', `"${file.name}" is too large (over 15MB) — skipping it.`, { error: true });
+        continue;
+      }
+      try {
+        const base64 = await fileToBase64(file);
+        const entry = {
+          name: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          base64,
+          previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+        };
+        pendingFiles.push(entry);
+      } catch (err) {
+        hideEmpty();
+        addRow('ai', `Couldn't read "${file.name}": ${err.message}`, { error: true });
+      }
+    }
+    fileInput.value = '';
+    renderPreviews();
+  });
+
+  function renderPreviews() {
+    previewsEl.innerHTML = '';
+    pendingFiles.forEach((f, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'preview-chip';
+      if (f.previewUrl) {
+        const img = document.createElement('img');
+        img.src = f.previewUrl;
+        chip.appendChild(img);
+      }
+      const name = document.createElement('span');
+      name.className = 'fname';
+      name.textContent = f.name;
+      chip.appendChild(name);
+      const rm = document.createElement('span');
+      rm.className = 'rm';
+      rm.textContent = '✕';
+      rm.title = 'Remove';
+      rm.addEventListener('click', () => {
+        pendingFiles.splice(i, 1);
+        renderPreviews();
+      });
+      chip.appendChild(rm);
+      previewsEl.appendChild(chip);
+    });
   }
 
   function addRow(role, content, opts = {}) {
@@ -319,14 +483,32 @@
     label.textContent = role === 'user' ? 'you' : 'gemini';
     row.appendChild(label);
 
+    if (opts.files && opts.files.length) {
+      const attachWrap = document.createElement('div');
+      attachWrap.className = 'attachments';
+      opts.files.forEach(f => {
+        if (f.previewUrl) {
+          const img = document.createElement('img');
+          img.src = f.previewUrl;
+          attachWrap.appendChild(img);
+        } else {
+          const chip = document.createElement('div');
+          chip.className = 'file-chip';
+          chip.textContent = '📄 ' + f.name;
+          attachWrap.appendChild(chip);
+        }
+      });
+      row.appendChild(attachWrap);
+    }
+
     const bubble = document.createElement('div');
     bubble.className = 'bubble' + (opts.pending ? ' pending' : '') + (opts.error ? ' error' : '');
     if (opts.pending) {
       bubble.innerHTML = '<span class="dot-flow"><span></span><span></span><span></span></span>';
-    } else {
+    } else if (content) {
       bubble.textContent = content;
     }
-    row.appendChild(bubble);
+    if (content || opts.pending) row.appendChild(bubble);
 
     chatEl.appendChild(row);
     chatEl.parentElement.scrollTop = chatEl.parentElement.scrollHeight;
@@ -354,7 +536,8 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = input.value.trim();
-    if (!text) return;
+    const filesToSend = pendingFiles.slice();
+    if (!text && filesToSend.length === 0) return;
 
     if (!API_KEY || API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
       hideEmpty();
@@ -363,8 +546,17 @@
     }
 
     hideEmpty();
-    addRow('user', text);
-    history.push({ role: 'user', parts: [{ text }] });
+    addRow('user', text, { files: filesToSend });
+
+    const parts = [];
+    filesToSend.forEach(f => {
+      parts.push({ inlineData: { mimeType: f.mimeType, data: f.base64 } });
+    });
+    if (text) parts.push({ text });
+    history.push({ role: 'user', parts });
+
+    pendingFiles = [];
+    renderPreviews();
     input.value = '';
     input.style.height = 'auto';
     sendBtn.disabled = true;
